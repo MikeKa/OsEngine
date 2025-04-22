@@ -121,6 +121,8 @@ namespace OsEngine.Candles.Series
 
                 Candle lastCandle = CandlesAll[CandlesAll.Count - 1];
 
+
+
                 if (
                     (_rencoLastSide == Side.None && price - _rencoStartPrice >= renDist)
                     ||
@@ -209,12 +211,6 @@ namespace OsEngine.Candles.Series
                 if (canPushUp)
                 {
                     UpdateChangeCandle();
-                }
-
-                if (newCandle.TimeStart.Day == CandlesAll[CandlesAll.Count - 1].TimeStart.Day)
-                {
-                    // recursion. When intraday gaps happen
-                    UpDateCandle(time, price, volume, canPushUp, side);
                 }
 
                 return;

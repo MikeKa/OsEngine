@@ -30,6 +30,8 @@ Plaza/Log/
 Data/
 lua/logs/
 Custom/Indicators/bin/
+Custom/
+
 **/Atp_Router/Files/
 **/[Dd]ebug/**.xml
 **/[Dd]ebug/**.con

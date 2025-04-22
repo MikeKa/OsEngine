@@ -1,4 +1,4 @@
-using OsEngine.Entity;
+﻿using OsEngine.Entity;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -90,31 +90,40 @@ namespace OsEngine.Indicators
                 _adX = null;
             }
             // 1 counting new directional movements
+            // 1 рассчитываем новые направленные движения
             DmjReload(candles, index);
 
             _dmjPlusAverage = MovingAverageWild(_dmjPlus, _dmjPlusAverage, _length.ValueInt, index);
             _dmjMinusAverage = MovingAverageWild(_dmjMinus, _dmjMinusAverage, _length.ValueInt, index);
             // 2 calculate true range
+            // 2 рассчитываем истинный диапазон
 
             TrueRangeReload(candles, index);
 
             _trueRangeAverage = MovingAverageWild(_trueRange, _trueRangeAverage, _length.ValueInt, index);
             // 3 smoothing movement through true range 
+            // 3 сглаживаем движение через истинный диапазон 
 
             SdijReload(index);
 
+            //_mdiPlus = MovingAverageWild(_sDIjPlus, _mdiPlus, Length, index);
+            //_mdiMinus = MovingAverageWild(_sDIjMinus, _mdiMinus, Length, index);
+
             // 5 making an array DX
+            // 5 делаем массив DX
 
             DxReload(index);
 
             if (_length.ValueInt == 0 || _length.ValueInt > _dX.Count)
             {
                 // if it's not possible to calculate
+                // если рассчёт не возможен
                 return 0;
             }
             else
             {
                 // calculating
+                // рассчитываем
                 _adX = MovingAverageWild(_dX, _adX, _length.ValueInt, index);
                 return Math.Round(_adX[_adX.Count - 1], 4);
             }
@@ -131,7 +140,7 @@ namespace OsEngine.Indicators
                 return;
             }
 
-            while (index > _dmjMinus.Count - 1)
+            if (index > _dmjMinus.Count - 1)
             {
                 _dmjMinus.Add(0);
                 _dmjPlus.Add(0);
@@ -156,10 +165,10 @@ namespace OsEngine.Indicators
 
         private void TrueRangeReload(List<Candle> candles, int index)
         {
-            // True range is the largest of following three values:
-            // difference between current maximum and minimum;
-            // difference between previous closing price an current maximum
-            // difference between previous closing price and current minimum
+            // True range is the largest of following three values:/Истинный диапазон (True Range) есть наибольшая из следующих трех величин:
+            // difference between current maximum and minimum;/разность между текущими максимумом и минимумом;
+            // difference between previous closing price an current maximum/разность между предыдущей ценой закрытия и текущим максимумом;
+            // difference between previous closing price and current minimum./разность между предыдущей ценой закрытия и текущим минимумом.
 
             if (index == 0)
             {
@@ -168,7 +177,7 @@ namespace OsEngine.Indicators
                 return;
             }
 
-            while (index > _trueRange.Count - 1)
+            if (index > _trueRange.Count - 1)
             {
                 _trueRange.Add(0);
             }
@@ -182,6 +191,9 @@ namespace OsEngine.Indicators
 
         private void SdijReload(int index)
         {
+            //if/если TRj не = 0, so/то +SDIj = +DMj / TRj; -SDIj = -DMj / TRj,
+            // if/если TRj = 0, so/то +SDIj = 0, — SDIj = 0.
+
             if (index == 0)
             {
                 _sDIjMinus = new List<decimal>();
@@ -197,9 +209,13 @@ namespace OsEngine.Indicators
                 _sDIjPlus.Add(0);
             }
 
-            decimal trueRange = _trueRangeAverage[index];
-            decimal dmjiPlus = _dmjPlusAverage[index];
-            decimal dmjiMinus = _dmjMinusAverage[index];
+            decimal trueRange = _trueRange[index];
+            decimal dmjiPlus = _dmjPlus[index];
+            decimal dmjiMinus = _dmjMinus[index];
+
+            trueRange = _trueRangeAverage[index];
+            dmjiPlus = _dmjPlusAverage[index];
+            dmjiMinus = _dmjMinusAverage[index];
 
             if (trueRange == 0)
             {
@@ -230,6 +246,7 @@ namespace OsEngine.Indicators
             else if (length == valuesSeries.Count)
             {
                 // it's first value. Calculate as MA
+                // это первое значение. Рассчитываем как простую машку
 
                 decimal lastMoving = 0;
 
@@ -248,14 +265,18 @@ namespace OsEngine.Indicators
             }
             else
             {
+                decimal lastValueMoving;
                 decimal lastValueSeries = valuesSeries[valuesSeries.Count - 1];
 
-                while (index > moving.Count - 1)
+                if (index > moving.Count - 1)
                 {
+                    lastValueMoving = moving[moving.Count - 1];
                     moving.Add(0);
                 }
-
-                decimal lastValueMoving = moving[moving.Count - 2];
+                else
+                {
+                    lastValueMoving = moving[moving.Count - 2];
+                }
 
                 moving[moving.Count - 1] = (lastValueMoving * (_length.ValueInt - 1) + lastValueSeries) / _length.ValueInt;
             }
