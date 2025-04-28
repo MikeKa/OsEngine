@@ -1294,6 +1294,7 @@
     <Compile Include="Robots\CounterTrend\ClusterCountertrend.cs" />
     <Compile Include="Robots\Engines\NewsEngine.cs" />
     <Compile Include="Robots\MyRobots\CountertrendBollingerAndStdDevLog.cs" />
+    <Compile Include="Robots\MyRobots\MyBollingerAndStdDevLog.cs" />
     <Compile Include="Robots\PositionsMicromanagement\AlligatorTrendAverage.cs" />
     <Compile Include="Robots\PositionsMicromanagement\CandlesTurnaroundPattern.cs" />
     <Compile Include="Robots\PositionsMicromanagement\CustomIcebergSample.cs" />
