@@ -29,8 +29,6 @@ bld/
 Plaza/Log/
 Data/
 lua/logs/
-**/MyScripts
-**/MyRobots/
 Tinkoff_Router_/
 **/Atp_Router/Files/
 **/[Dd]ebug/**.xml
