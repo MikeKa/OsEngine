@@ -319,6 +319,14 @@ namespace OsEngine.Language
           "Eng:Expiration_" +
           "Ru:Экспирация_");
 
+        public string SecuritiesColumn19 => OsLocalization.ConvertToLocString(
+         "Eng:Volume step_" +
+         "Ru:Шаг объёма_");
+
+        public string SecuritiesColumn20 => OsLocalization.ConvertToLocString(
+         "Eng:Min volume Type_" +
+         "Ru:Тип мин объёма_");
+
         public string TitleSecurityUi => OsLocalization.ConvertToLocString(
             "Eng:Security settings_" +
             "Ru:Настройка инструмента_");

@@ -27,8 +27,9 @@ namespace OsEngine.Market.Servers.GateIo.GateIoFutures
 {
     public class GateIoServerFutures : AServer
     {
-        public GateIoServerFutures()
+        public GateIoServerFutures(int uniqueNumber)
         {
+            ServerNum = uniqueNumber;
             ServerRealization = new GateIoServerFuturesRealization();
             CreateParameterString(OsLocalization.Market.ServerParamPublicKey, "");
             CreateParameterPassword(OsLocalization.Market.ServerParameterSecretKey, "");
@@ -64,7 +65,7 @@ namespace OsEngine.Market.Servers.GateIo.GateIoFutures
 
         public DateTime ServerTime { get; set; }
 
-        public void Connect()
+        public void Connect(WebProxy proxy)
         {
             _publicKey = ((ServerParameterString)ServerParameters[0]).Value;
             _secretKey = ((ServerParameterPassword)ServerParameters[1]).Value;
@@ -275,14 +276,13 @@ namespace OsEngine.Market.Servers.GateIo.GateIoFutures
                 security.SecurityType = SecurityType.Futures;
                 security.PriceStep = current.order_price_round.ToDecimal();
                 security.PriceStepCost = security.PriceStep;
-                security.Lot = current.quanto_multiplier.ToDecimal();
+                security.Lot = 1;
                 security.Decimals = current.order_price_round.DecimalsCount();
-                security.DecimalsVolume = 0;
+                security.DecimalsVolume = current.quanto_multiplier.DecimalsCount();
 
-                if (current.order_size_min != null)
-                {
-                    security.MinTradeAmount = current.order_size_min.ToDecimal();
-                }
+                security.VolumeStep = current.quanto_multiplier.ToDecimal();
+                security.MinTradeAmountType = MinTradeAmountType.Contract;
+                security.MinTradeAmount = current.quanto_multiplier.ToDecimal();
 
                 securities.Add(security);
             }
@@ -1578,11 +1578,13 @@ namespace OsEngine.Market.Servers.GateIo.GateIoFutures
                     }
                     else
                     {
+                        GetOrderStatus(order);
                         SendLogMessage($"Error on order cancel num {order.NumberUser}", LogMessageType.Error);
                     }
                 }
                 else
                 {
+                    GetOrderStatus(order);
                     SendLogMessage($"CancelOrder> Http State Code: {result.StatusCode}, {result.Content}", LogMessageType.Error);
                 }
             }

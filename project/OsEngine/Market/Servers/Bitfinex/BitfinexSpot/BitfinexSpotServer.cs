@@ -24,8 +24,9 @@ namespace OsEngine.Market.Servers.Bitfinex
 {
     public class BitfinexSpotServer : AServer
     {
-        public BitfinexSpotServer()
+        public BitfinexSpotServer(int uniqueNumber)
         {
+            ServerNum = uniqueNumber;
             BitfinexSpotServerRealization realization = new BitfinexSpotServerRealization();
             ServerRealization = realization;
 
@@ -65,7 +66,7 @@ namespace OsEngine.Market.Servers.Bitfinex
 
         public DateTime ServerTime { get; set; }
 
-        public void Connect()
+        public void Connect(WebProxy proxy = null)
         {
             try
             {
@@ -258,8 +259,10 @@ namespace OsEngine.Market.Servers.Bitfinex
                         newSecurity.PriceStepCost = newSecurity.PriceStep;
                         newSecurity.DecimalsVolume = DigitsAfterComma(volume);
                         newSecurity.MinTradeAmount = GetMinSize(symbol);
-
+                        newSecurity.MinTradeAmountType = MinTradeAmountType.Contract;
+                        newSecurity.VolumeStep = newSecurity.DecimalsVolume.GetValueByDecimals();
                         securities.Add(newSecurity);
+
                     }
 
                     if (SecurityEvent != null)
@@ -2341,7 +2344,6 @@ namespace OsEngine.Market.Servers.Bitfinex
                     volume = Math.Abs(volume);
                 }
 
-                updateOrder.VolumeExecute = volume;
                 updateOrder.Volume = volume;
                 updateOrder.PortfolioNumber = "BitfinexSpotPortfolio";
 
@@ -2542,20 +2544,15 @@ namespace OsEngine.Market.Servers.Bitfinex
 
                     if (responseJson == null)
                     {
+                        GetOrderStatus(order);
                         SendLogMessage("CancelOrder> Deserialization resulted in null", LogMessageType.Error);
                         return;
                     }
-
-                    SendLogMessage($"Order canceled Successfully. Order ID:{order.NumberMarket}", LogMessageType.Trade);
-                    order.State = OrderStateType.Cancel;
-                    MyOrderEvent(order);
-
                 }
                 else
                 {
+                    GetOrderStatus(order);
                     SendLogMessage($" Error Order cancellation:  {response.Content}, {response.ErrorMessage}", LogMessageType.Error);
-                    order.State = OrderStateType.Fail;
-                    MyOrderEvent?.Invoke(order);
                 }
             }
             catch (Exception exception)
@@ -2706,7 +2703,7 @@ namespace OsEngine.Market.Servers.Bitfinex
                 }
                 else
                 {
-                    SendLogMessage($" Can't get all orders. State Code: {response.Content}", LogMessageType.Error);
+                    SendLogMessage($"GetAllOpenOrders>  Can't get all orders. State Code: {response.Content}", LogMessageType.Error);
                 }
             }
             catch (Exception exception)
@@ -2930,7 +2927,6 @@ namespace OsEngine.Market.Servers.Bitfinex
 
                                 historyOrder.Price = orderData[16].ToString().ToDecimal();
                                 historyOrder.PortfolioNumber = "BitfinexSpotPortfolio";
-                                historyOrder.VolumeExecute = volume;
                                 historyOrder.Volume = volume;
 
                                 ordersHistory.Add(historyOrder);

@@ -38,6 +38,7 @@ namespace OsEngine.Market.Servers.Alor
             CreateParameterBoolean(OsLocalization.Market.UseOptions, false);
             CreateParameterBoolean(OsLocalization.Market.UseOther, false);
             CreateParameterEnum(OsLocalization.Market.ServerParam13, "10", new List<string> { "1", "10", "20"});
+            CreateParameterBoolean(OsLocalization.Market.IgnoreMorningAuctionTrades, false);
         }
     }
 
@@ -64,10 +65,13 @@ namespace OsEngine.Market.Servers.Alor
             worker4.Start();
         }
 
-        public void Connect()
+        private WebProxy _myProxy;
+
+        public void Connect(WebProxy proxy = null)
         {
             try
             {
+                _myProxy = proxy;
                 _securities.Clear();
                 _myPortfolios.Clear();
                 _subscribedSecurities.Clear();
@@ -80,6 +84,7 @@ namespace OsEngine.Market.Servers.Alor
                 _portfolioFutId = ((ServerParameterString)ServerParameters[2]).Value;
                 _portfolioCurrencyId = ((ServerParameterString)ServerParameters[3]).Value;
                 _portfolioSpareId = ((ServerParameterString)ServerParameters[4]).Value;
+                _ignoreMorningAuctionTrades = ((ServerParameterBool)ServerParameters[11]).Value;
 
                 if (string.IsNullOrEmpty(_apiTokenRefresh))
                 {
@@ -148,6 +153,12 @@ namespace OsEngine.Market.Servers.Alor
                 string endPoint = "/refresh?token=" + _apiTokenRefresh;
                 RestRequest requestRest = new RestRequest(endPoint, Method.POST);
                 RestClient client = new RestClient(_oauthApiHost);
+
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
+
                 IRestResponse response = client.Execute(requestRest);
 
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -213,6 +224,7 @@ namespace OsEngine.Market.Servers.Alor
         private bool _useOptions = false;
         private bool _useCurrency = false;
         private bool _useOther = false;
+        private bool _ignoreMorningAuctionTrades = true; // ignore trades before 7:00 MSK for stocks and before 9:00 for futures
 
         private string _portfolioSpotId;
         private string _portfolioFutId;
@@ -283,6 +295,12 @@ namespace OsEngine.Market.Servers.Alor
                 RestRequest requestRest = new RestRequest(endPoint, Method.GET);
                 requestRest.AddHeader("Authorization", "Bearer " + _apiTokenReal);
                 RestClient client = new RestClient(_restApiHost);
+
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
+
                 IRestResponse response = client.Execute(requestRest);
 
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -338,6 +356,7 @@ namespace OsEngine.Market.Servers.Alor
                     newSecurity.Exchange = item.exchange;
                     newSecurity.DecimalsVolume = 0;
                     newSecurity.Lot = item.lotsize.ToDecimal();
+                    newSecurity.VolumeStep = 1;
                     newSecurity.Name = item.symbol;
                     newSecurity.NameFull = item.symbol + "_" + item.board;
 
@@ -649,6 +668,11 @@ namespace OsEngine.Market.Servers.Alor
 
                 RestClient client = new RestClient(_restApiHost);
 
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
+
                 IRestResponse response = client.Execute(requestRest);
 
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -835,6 +859,12 @@ namespace OsEngine.Market.Servers.Alor
                 requestRest.AddHeader("accept", "application/json");
                 requestRest.AddHeader("Authorization", "Bearer " + _apiTokenReal);
                 RestClient client = new RestClient(_restApiHost);
+
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
+
                 IRestResponse response = client.Execute(requestRest);
 
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -969,6 +999,12 @@ namespace OsEngine.Market.Servers.Alor
                 requestRest.AddHeader("accept", "application/json");
                 requestRest.AddHeader("Authorization", "Bearer " + _apiTokenReal);
                 RestClient client = new RestClient(_restApiHost);
+
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
+
                 IRestResponse response = client.Execute(requestRest);
 
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -1064,6 +1100,13 @@ namespace OsEngine.Market.Servers.Alor
                     _webSocketData.OnClose += WebSocketData_Closed;
                     _webSocketData.OnMessage += WebSocketData_MessageReceived;
                     _webSocketData.OnError += WebSocketData_Error;
+
+                    if(_myProxy != null)
+                    {
+                        NetworkCredential credential = (NetworkCredential)_myProxy.Credentials;
+                        _webSocketData.SetProxy(_myProxy.Address.ToString(), credential.UserName, credential.Password);
+                    }
+
                     _webSocketData.Connect();
 
                     _webSocketPortfolio = new WebSocket(_wsHost);
@@ -1072,6 +1115,13 @@ namespace OsEngine.Market.Servers.Alor
                     _webSocketPortfolio.OnClose += _webSocketPortfolio_Closed;
                     _webSocketPortfolio.OnMessage += _webSocketPortfolio_MessageReceived;
                     _webSocketPortfolio.OnError += _webSocketPortfolio_Error;
+
+                    if (_myProxy != null)
+                    {
+                        NetworkCredential credential = (NetworkCredential)_myProxy.Credentials;
+                        _webSocketPortfolio.SetProxy(_myProxy.Address.ToString(), credential.UserName, credential.Password);
+                    }
+
                     _webSocketPortfolio.Connect();
 
                 }
@@ -1536,7 +1586,7 @@ namespace OsEngine.Market.Servers.Alor
                 subObjMarketDepth.guid = GetGuid();
                 subObjMarketDepth.token = _apiTokenReal;
 
-                if (((ServerParameterBool)ServerParameters[18]).Value == false)
+                if (((ServerParameterBool)ServerParameters[19]).Value == false)
                 {
                     subObjMarketDepth.depth = "1";
                 }
@@ -1684,6 +1734,35 @@ namespace OsEngine.Market.Servers.Alor
             {
 
             }
+
+            if (_ignoreMorningAuctionTrades && trade.Time.Hour < 9) // process only mornings
+            {
+                Security security = _subscribedSecurities[0];
+                for (int i = 0; i < _subscribedSecurities.Count; i++)
+                {
+                    if (_subscribedSecurities[i].Name == trade.SecurityNameCode)
+                    {
+                        security = _subscribedSecurities[i];
+                        break;
+                    }
+                }
+
+                if (security.SecurityType == SecurityType.Futures)
+                {
+                    if (trade.Time < trade.Time.Date.AddHours(9))
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    if (trade.Time < trade.Time.Date.AddHours(7))
+                    {
+                        return;
+                    }
+                }
+            }
+
 
             if (NewTradesEvent != null)
             {
@@ -2273,6 +2352,11 @@ namespace OsEngine.Market.Servers.Alor
 
                 RestClient client = new RestClient(_restApiHost);
 
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
+
                 IRestResponse response = client.Execute(requestRest);
 
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -2407,13 +2491,18 @@ namespace OsEngine.Market.Servers.Alor
                 if(qty <= 0 ||
                     order.State != OrderStateType.Active)
                 {
-                    SendLogMessage("Can`t change price to order. It's not in Activ state", LogMessageType.Error);
+                    SendLogMessage("Can`t change price to order. It's not in Active state", LogMessageType.Error);
                     return;
                 }
 
                 requestRest.AddJsonBody(body);
                 
                 RestClient client = new RestClient(_restApiHost);
+
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
 
                 AlorChangePriceOrder alorChangePriceOrder = new AlorChangePriceOrder();
                 alorChangePriceOrder.MarketId = order.NumberMarket;
@@ -2502,6 +2591,11 @@ namespace OsEngine.Market.Servers.Alor
                 requestRest.AddHeader("accept", "application/json");
 
                 RestClient client = new RestClient(_restApiHost);
+
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
 
                 IRestResponse response = client.Execute(requestRest);
 
@@ -2741,6 +2835,11 @@ namespace OsEngine.Market.Servers.Alor
 
                 RestClient client = new RestClient(_restApiHost);
 
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
+
                 IRestResponse response = client.Execute(requestRest);
 
 
@@ -2804,7 +2903,13 @@ namespace OsEngine.Market.Servers.Alor
             {
                 // /md/v2/Clients/MOEX/D39004/LKOH/trades?format=Simple
 
-                string endPoint = "/md/v2/clients/MOEX/" + portfolio + "/" + security + "/trades?format=Simple";
+                string exchange = "MOEX";
+                if (portfolio.StartsWith("E"))
+                {
+                    exchange = "UNITED";
+                }
+
+                string endPoint = $"/md/v2/clients/{exchange}/{portfolio}/{security}/trades?format=Simple";
 
                 RestRequest requestRest = new RestRequest(endPoint, Method.GET);
                 requestRest.AddHeader("Authorization", "Bearer " + _apiTokenReal);
@@ -2812,8 +2917,12 @@ namespace OsEngine.Market.Servers.Alor
 
                 RestClient client = new RestClient(_restApiHost);
 
-                IRestResponse response = client.Execute(requestRest);
+                if (_myProxy != null)
+                {
+                    client.Proxy = _myProxy;
+                }
 
+                IRestResponse response = client.Execute(requestRest);
 
                 if (response.StatusCode == HttpStatusCode.OK)
                 {

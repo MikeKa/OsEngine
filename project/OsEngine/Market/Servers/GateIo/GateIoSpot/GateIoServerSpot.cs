@@ -25,8 +25,9 @@ namespace OsEngine.Market.Servers.GateIo.GateIoSpot
 {
     public class GateIoServerSpot : AServer
     {
-        public GateIoServerSpot()
+        public GateIoServerSpot(int uniqueNumber)
         {
+            ServerNum = uniqueNumber;
             ServerRealization = new GateIoServerSpotRealization();
             CreateParameterString(OsLocalization.Market.ServerParamPublicKey, "");
             CreateParameterPassword(OsLocalization.Market.ServerParameterSecretKey, "");
@@ -54,7 +55,7 @@ namespace OsEngine.Market.Servers.GateIo.GateIoSpot
 
         public DateTime ServerTime { get; set; }
 
-        public void Connect()
+        public void Connect(WebProxy proxy)
         {
             _publicKey = ((ServerParameterString)ServerParameters[0]).Value;
             _secretKey = ((ServerParameterPassword)ServerParameters[1]).Value;
@@ -208,8 +209,11 @@ namespace OsEngine.Market.Servers.GateIo.GateIoSpot
 
                 if (current.min_base_amount != null)
                 {
-                    security.MinTradeAmount = current.min_base_amount.ToDecimal();
+                    security.VolumeStep = current.min_base_amount.ToDecimal();
                 }
+
+                security.MinTradeAmount = current.min_quote_amount.ToDecimal();
+                security.MinTradeAmountType = MinTradeAmountType.C_Currency;
 
                 _securities.Add(security);
             }
@@ -703,11 +707,18 @@ namespace OsEngine.Market.Servers.GateIo.GateIoSpot
                 {
                     return;
                 }
+
                 if (string.IsNullOrEmpty(e.Data))
                 {
                     return;
                 }
+
                 if (_fifoListWebSocketMessage == null)
+                {
+                    return;
+                }
+
+                if (e.Data.Contains("spot.pong"))
                 {
                     return;
                 }
@@ -1411,6 +1422,7 @@ namespace OsEngine.Market.Servers.GateIo.GateIoSpot
 
                 if (responseMessage.StatusCode != System.Net.HttpStatusCode.OK)
                 {
+                    GetOrderStatus(order);
                     SendLogMessage($"CancelOrder. Error: {responseMessage.Content}", LogMessageType.Error);
                 }
             }

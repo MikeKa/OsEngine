@@ -472,10 +472,7 @@
     <Compile Include="Entity\HorizontalVolume.cs" />
     <Compile Include="Entity\MarketDepthPainter.cs" />
     <Compile Include="Entity\News.cs" />
-    <Compile Include="Entity\ProxyHolder.cs" />
-    <Compile Include="Entity\ProxyHolderAddUi.xaml.cs">
-      <DependentUpon>ProxyHolderAddUi.xaml</DependentUpon>
-    </Compile>
+    <Compile Include="Market\Proxy\ProxyOsa.cs" />
     <Compile Include="Indicators\EmptyIndicator.cs" />
     <Compile Include="Indicators\IndicatorDataSeries.cs" />
     <Compile Include="Indicators\MyIndicators\BollingerLog.cs" />
@@ -491,6 +488,10 @@
     <Compile Include="Market\Connectors\ConnectorNews.cs" />
     <Compile Include="Market\Connectors\ConnectorNewsUi.xaml.cs">
       <DependentUpon>ConnectorNewsUi.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Market\Proxy\ProxyMaster.cs" />
+    <Compile Include="Market\Proxy\ProxyMasterUi.xaml.cs">
+      <DependentUpon>ProxyMasterUi.xaml</DependentUpon>
     </Compile>
     <Compile Include="Market\Servers\AExchange\AExchangeServer.cs" />
     <Compile Include="Market\Servers\AExchange\AExchangeServerPermission.cs" />
@@ -690,7 +691,7 @@
     <Compile Include="Market\Servers\BingX\BingXSpot\BingXServerSpot.cs" />
     <Compile Include="Market\Servers\BingX\BingXSpot\BingXSpotServerPermission.cs" />
     <Compile Include="Market\Servers\BingX\BingXSpot\Entity\ListenKeyBingX.cs" />
-    <Compile Include="Market\Servers\BingX\BingXSpot\Entity\ResponceWebSocketBingXMessage.cs" />
+    <Compile Include="Market\Servers\BingX\BingXSpot\Entity\ResponseWebSocketBingXMessage.cs" />
     <Compile Include="Market\Servers\BingX\BingXSpot\Entity\ResponseSpotBingX.cs" />
     <Compile Include="Market\Servers\BitGet\BitGetFutures\BitGetFuturesServerPermission.cs" />
     <Compile Include="Market\Servers\BitGet\BitGetFutures\BitGetServerFutures.cs" />
@@ -1293,6 +1294,7 @@
     <Compile Include="Robots\BotsFromStartLessons\Lesson9Bot5.cs" />
     <Compile Include="Robots\CounterTrend\ClusterCountertrend.cs" />
     <Compile Include="Robots\Engines\NewsEngine.cs" />
+    <Compile Include="Robots\Grids\GridBotClassic.cs" />
     <Compile Include="Robots\MyRobots\CountertrendBollingerAndStdDevLog.cs" />
     <Compile Include="Robots\MyRobots\MyBollingerAndStdDevLog.cs" />
     <Compile Include="Robots\PositionsMicromanagement\AlligatorTrendAverage.cs" />
@@ -1676,10 +1678,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Entity\ProxyHolderAddUi.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="Indicators\AIndicatorUi.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -1717,6 +1715,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Market\Connectors\MassSourcesCreateUi.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Market\Proxy\ProxyMasterUi.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

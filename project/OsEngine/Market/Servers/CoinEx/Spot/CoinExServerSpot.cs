@@ -20,6 +20,7 @@ using System.IO.Compression;
 using System.IO;
 using Newtonsoft.Json;
 using System.Net.Http;
+using System.Net;
 
 namespace OsEngine.Market.Servers.CoinEx.Spot
 {
@@ -65,7 +66,7 @@ namespace OsEngine.Market.Servers.CoinEx.Spot
             worker1.Start();
         }
 
-        public void Connect()
+        public void Connect(WebProxy proxy = null)
         {
             try
             {
@@ -1649,7 +1650,7 @@ namespace OsEngine.Market.Servers.CoinEx.Spot
             {
                 if (cexOrder.unfilled_amount.ToString().ToDecimal() > 0)
                 {
-                    order.State = cexOrder.amount == cexOrder.unfilled_amount ? OrderStateType.Activ : OrderStateType.Patrial;
+                    order.State = cexOrder.amount == cexOrder.unfilled_amount ? OrderStateType.Active : OrderStateType.Partial;
                 }
             }
 

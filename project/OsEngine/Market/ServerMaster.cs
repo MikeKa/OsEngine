@@ -74,8 +74,8 @@ using OsEngine.Market.Servers.CoinEx.Futures;
 using OsEngine.Market.Servers.RSSNews;
 using OsEngine.Market.Servers.SmartLabNews;
 using OsEngine.Market.Servers.AE;
-using Grpc.Core;
-using System.Windows.Controls.Primitives;
+using OsEngine.Market.Proxy;
+using System.Net;
 
 
 namespace OsEngine.Market
@@ -88,6 +88,11 @@ namespace OsEngine.Market
     {
 
         #region Service
+
+        public static void Activate()
+        {
+            ActivateLogging();
+        }
 
         /// <summary>
         /// show settings
@@ -549,7 +554,7 @@ namespace OsEngine.Market
                 }
                 if (type == ServerType.XTSpot)
                 {
-                    newServer = new XTServerSpot();
+                    newServer = new XTServerSpot(uniqueNum);
                 }
                 if (type == ServerType.BingXFutures)
                 {
@@ -557,11 +562,11 @@ namespace OsEngine.Market
                 }
                 if (type == ServerType.KuCoinFutures)
                 {
-                    newServer = new KuCoinFuturesServer();
+                    newServer = new KuCoinFuturesServer(uniqueNum);
                 }
                 if (type == ServerType.KuCoinSpot)
                 {
-                    newServer = new KuCoinSpotServer();
+                    newServer = new KuCoinSpotServer(uniqueNum);
                 }
                 if (type == ServerType.Alor)
                 {
@@ -601,11 +606,11 @@ namespace OsEngine.Market
                 }
                 if (type == ServerType.GateIoSpot)
                 {
-                    newServer = new GateIoServerSpot();
+                    newServer = new GateIoServerSpot(uniqueNum);
                 }
                 if (type == ServerType.GateIoFutures)
                 {
-                    newServer = new GateIoServerFutures();
+                    newServer = new GateIoServerFutures(uniqueNum);
                 }
                 if (type == ServerType.Bybit)
                 {
@@ -633,7 +638,7 @@ namespace OsEngine.Market
                 }
                 if (type == ServerType.BitfinexSpot)
                 {
-                    newServer = new BitfinexSpotServer();
+                    newServer = new BitfinexSpotServer(uniqueNum);
                 }
                 if (type == ServerType.Binance)
                 {
@@ -701,15 +706,15 @@ namespace OsEngine.Market
                 }
                 else if (type == ServerType.HTXSpot)
                 {
-                    newServer = new HTXSpotServer();
+                    newServer = new HTXSpotServer(uniqueNum);
                 }
                 else if (type == ServerType.HTXFutures)
                 {
-                    newServer = new HTXFuturesServer();
+                    newServer = new HTXFuturesServer(uniqueNum);
                 }
                 else if (type == ServerType.HTXSwap)
                 {
-                    newServer = new HTXSwapServer();
+                    newServer = new HTXSwapServer(uniqueNum);
                 }
                 else if (type == ServerType.BitMart)
                 {
@@ -725,7 +730,7 @@ namespace OsEngine.Market
                 }
                 else if (type == ServerType.MexcSpot)
                 {
-                    newServer = new MexcSpotServer();
+                    newServer = new MexcSpotServer(uniqueNum);
                 }
                 else if (type == ServerType.KiteConnect)
                 {
@@ -1054,6 +1059,11 @@ namespace OsEngine.Market
                 try
                 {
                     bool isInArray = false;
+
+                    if(string.IsNullOrEmpty(serverName))
+                    {
+                        serverName = type.ToString();
+                    }
 
                     for (int i = 0; i < _needServerNames.Count; i++)
                     {
@@ -1492,6 +1502,60 @@ namespace OsEngine.Market
 
         #endregion
 
+        #region Proxy 
+
+        private static ProxyMaster _proxyMaster;
+
+        public static void ActivateProxy()
+        {
+            if (_proxyMaster == null)
+            {
+                _proxyMaster = new ProxyMaster();
+                _proxyMaster.LogMessageEvent += SendNewLogMessage;
+                _proxyMaster.Activate();
+            }
+        }
+
+        public static WebProxy GetProxyAutoRegime(ServerType serverType, string serverName)
+        {
+            try
+            {
+                return _proxyMaster.GetProxyAutoRegime(serverType, serverName);
+            }
+            catch (Exception ex)
+            {
+                SendNewLogMessage(ex.ToString(),LogMessageType.Error);
+                return null;
+            }
+        }
+
+        public static WebProxy GetProxyManualRegime(string userValue)
+        {
+            try
+            {
+                return _proxyMaster.GetProxyManualRegime(userValue);
+            }
+            catch (Exception ex)
+            {
+                SendNewLogMessage(ex.ToString(), LogMessageType.Error);
+                return null;
+            }
+        }
+
+        public static void ShowProxyDialog()
+        {
+            try
+            {
+                _proxyMaster.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                SendNewLogMessage(ex.ToString(), LogMessageType.Error); 
+            }
+        }
+
+        #endregion
+
         #region Access to portfolio, orders and its drawing
 
         /// <summary>
@@ -1589,7 +1653,7 @@ namespace OsEngine.Market
         /// <summary>
         /// enable object logging
         /// </summary>
-        public static void ActivateLogging()
+        private static void ActivateLogging()
         {
             if (Log == null)
             {

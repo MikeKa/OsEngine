@@ -26,8 +26,9 @@ namespace OsEngine.Market.Servers.Mexc
 {
     public class MexcSpotServer : AServer
     {
-        public MexcSpotServer()
+        public MexcSpotServer(int uniqueNumber)
         {
+            ServerNum = uniqueNumber;
             MexcSpotServerRealization realization = new MexcSpotServerRealization();
             ServerRealization = realization;
 
@@ -55,7 +56,7 @@ namespace OsEngine.Market.Servers.Mexc
             worker3.Start();
         }
 
-        public void Connect()
+        public void Connect(WebProxy proxy)
         {
             SendLogMessage("Start MexcSpot Connection", LogMessageType.System);
 
@@ -240,7 +241,7 @@ namespace OsEngine.Market.Servers.Mexc
                     security.SecurityType = SecurityType.CurrencyPair;
                     security.Exchange = ServerType.MexcSpot.ToString();
                     security.Lot = 1;
-                    security.PriceStep = GetPriceStep(Convert.ToInt32(sec.quoteAssetPrecision));
+                    security.PriceStep = GetStep(Convert.ToInt32(sec.quoteAssetPrecision));
                     security.PriceStepCost = security.PriceStep;
 
                     if (security.PriceStep < 1)
@@ -255,6 +256,10 @@ namespace OsEngine.Market.Servers.Mexc
 
                     security.DecimalsVolume = Convert.ToInt32(sec.baseAssetPrecision);
 
+                    security.MinTradeAmount = sec.quoteAmountPrecision.ToDecimal();
+                    security.MinTradeAmountType = MinTradeAmountType.C_Currency;
+                    security.VolumeStep = GetStep(Convert.ToInt32(sec.baseAssetPrecision));
+
                     _securities.Add(security);
                 }
             }
@@ -264,7 +269,7 @@ namespace OsEngine.Market.Servers.Mexc
             }
         }
 
-        private decimal GetPriceStep(int ScalePrice)
+        private decimal GetStep(int ScalePrice)
         {
             if (ScalePrice == 0)
             {
@@ -1743,16 +1748,15 @@ namespace OsEngine.Market.Servers.Mexc
                     }
                     else
                     {
-                        CreateOrderFail(order);
+                        GetOrderStatus(order);
                         SendLogMessage($"Cancel order, answer is wrong: {content}", LogMessageType.Error);
                     }
                 }
                 else
                 {
+                    GetOrderStatus(order);
                     SendLogMessage("Cancel order failed. Status: "
                         + response.StatusCode + "  " + order.SecurityNameCode + ", " + content, LogMessageType.Error);
-
-                    CreateOrderFail(order);
                 }
             }
             catch (Exception exception)

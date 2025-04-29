@@ -75,7 +75,7 @@ namespace OsEngine.Market.Servers.Binance.Futures
             worker4.Start();
         }
 
-        public void Connect()
+        public void Connect(WebProxy proxy = null)
         {
             ApiKey = ((ServerParameterString)ServerParameters[0]).Value;
             SecretKey = ((ServerParameterPassword)ServerParameters[1]).Value;
@@ -120,7 +120,7 @@ namespace OsEngine.Market.Servers.Binance.Futures
                 if (((ServerParameterEnum)ServerParameters[2]).Value == "USDT-M")
                 {
                     _baseUrl = "https://testnet.binancefuture.com";
-                    wss_point = "wss://testnet.binancefuture.com/ws-fapi/v1";
+                    wss_point = "wss://stream.binancefuture.com";
                     type_str_selector = "fapi";
                 }
                 else if (((ServerParameterEnum)ServerParameters[2]).Value == "COIN-M")
@@ -284,17 +284,32 @@ namespace OsEngine.Market.Servers.Binance.Futures
                 }
 
                 if (sec.filters.Count > 1 &&
-                    sec.filters[1] != null &&
-                    sec.filters[1].minQty != null)
+                    sec.filters[1] != null)
                 {
-                    decimal minQty = sec.filters[1].minQty.ToDecimal();
-                    security.MinTradeAmount = minQty;
-                    string qtyInStr = minQty.ToStringWithNoEndZero().Replace(",", ".");
-                    if (qtyInStr.Replace(",", ".").Split('.').Length > 1)
+                    if (sec.filters[1].minQty != null)
                     {
-                        security.DecimalsVolume = qtyInStr.Replace(",", ".").Split('.')[1].Length;
+                        decimal minQty = sec.filters[1].minQty.ToDecimal();
+                        string qtyInStr = minQty.ToStringWithNoEndZero().Replace(",", ".");
+                        if (qtyInStr.Replace(",", ".").Split('.').Length > 1)
+                        {
+                            security.DecimalsVolume = qtyInStr.Replace(",", ".").Split('.')[1].Length;
+                        }
+                    }
+
+                    if (sec.filters[1].stepSize != null)
+                    {
+                        security.VolumeStep = sec.filters[1].stepSize.ToDecimal();
                     }
                 }
+
+                if (sec.filters.Count > 1 &&
+                    sec.filters[5] != null &&
+                    sec.filters[5].notional != null)
+                {
+                    security.MinTradeAmount = sec.filters[5].notional.ToDecimal();
+                }
+
+                security.MinTradeAmountType = MinTradeAmountType.C_Currency;
 
                 security.State = SecurityStateType.Activ;
                 _securities.Add(security);
@@ -314,9 +329,9 @@ namespace OsEngine.Market.Servers.Binance.Futures
 
             }
 
-            List<Security> securitiesHistorical = CreateHistoricalSecurities(secNonPerp);
+            //List<Security> securitiesHistorical = CreateHistoricalSecurities(secNonPerp);
 
-            _securities.AddRange(securitiesHistorical);
+            //_securities.AddRange(securitiesHistorical);
 
             if (SecurityEvent != null)
             {
@@ -521,12 +536,10 @@ namespace OsEngine.Market.Servers.Binance.Futures
                         {
                             sizeUSDT = onePortf.marginBalance.ToDecimal();
                         }
-                        else if (onePortf.asset.EndsWith("USD")
-                            || onePortf.asset.EndsWith("USDT"))
-                        {
-                            continue;
-                        }
-                        else
+                        else if (onePortf.asset.Equals("USDC")
+                            || onePortf.asset.Equals("BTC")
+                            || onePortf.asset.Equals("BNB")
+                            || onePortf.asset.Equals("ETH"))
                         {
                             positionInUSDT += GetPriceSecurity(onePortf.asset + "USDT") * onePortf.marginBalance.ToDecimal();
                         }
